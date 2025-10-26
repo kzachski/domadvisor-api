@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DomAdvisor – Test online (Vercel API)</title>
+  <style>
+    body{margin:0;background:#0A1828;color:#fff;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:900px;margin:48px auto;padding:0 20px}
+    .card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:28px}
+    h1{margin:0 0 8px;font-size:36px}
+    input[type=url]{width:100%;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,.22);background:#102a47;color:#fff;margin:10px 0}
+    button{background:#D4AF37;color:#0A1828;border:none;padding:12px 18px;border-radius:10px;font-weight:600;cursor:pointer}
+    pre{background:#0B0D17;border:1px solid rgba(255,255,255,.12);padding:14px;border-radius:10px;color:#f6f6f6;overflow:auto;max-height:360px}
+    .ok{color:#82ffa2}.bad{color:#ff7272}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Test pobierania danych (ONLINE, Vercel)</h1>
+      <div class="muted">Ten test używa endpointu <code>/api/ingest</code> z tego samego projektu.</div>
+      <input id="listing-url" type="url" placeholder="https://www.otodom.pl/pl/oferta/..." />
+      <button id="listing-fetch">POBIERZ DANE</button>
+      <div id="listing-status" style="opacity:.8;margin-top:8px">Status: czekam…</div>
+      <pre id="listing-preview"></pre>
+    </div>
+  </div>
+  <script>
+  (function(){
+    const API_URL = '/api/ingest';
+    const urlInput  = document.getElementById('listing-url');
+    const btn       = document.getElementById('listing-fetch');
+    const statusEl  = document.getElementById('listing-status');
+    const previewEl = document.getElementById('listing-preview');
+
+    btn.addEventListener('click', async ()=>{
+      const url = (urlInput.value||'').trim();
+      if(!url){ statusEl.innerHTML='<span class="bad">❗ Wklej poprawny URL</span>'; return; }
+      statusEl.textContent='⏳ Łączenie z API…'; previewEl.textContent='';
+      try{
+        const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ url }) });
+        const data = await res.json();
+        const listing = data?.data?.listing;
+        if(!listing){ statusEl.innerHTML='<span class="bad">❌ Brak danych</span>'; return; }
+        const conf = Math.round((listing.parseConfidence||0)*100);
+        statusEl.innerHTML = `<span class="ok">✅ OK</span> • Źródło: <b>${listing.source}</b> • Jakość: ${conf}%`;
+        previewEl.textContent = JSON.stringify(listing, null, 2);
+      }catch(e){
+        statusEl.innerHTML='<span class="bad">❌ Błąd połączenia: '+(e.message||e)+'</span>';
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
